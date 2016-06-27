@@ -33,7 +33,7 @@ int decodeOneAmrFile( char* AmrName , char* WavNAme )
 	WAVStruct*	WavStruct = 0 ;
 	Speech_Decode_FrameState *speech_decoder_state = NULL;
 
-	Word16* synth0[6];        // L_FRAME    /* Synthesis                     */
+	Word16* synth0[6] = {0};        // L_FRAME    /* Synthesis                     */
 	Word16* synthBuffer = 0  ;
 	Word16* synth ;
 	Word32 frame;

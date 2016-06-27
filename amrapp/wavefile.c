@@ -23,9 +23,6 @@
 	|__________________________|
 
 ****************************************************/
-
-
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -43,28 +40,30 @@
  *	Flowchart		:	
  *	Note			:	
  *********************************************************************************/
-
-
 WAVStruct* OpenWaveFile( char* WavName ) 
 {
 	FILE*			fp = 0  ; 
-	char			buf4[5] ;
+	char			buf4[5] = {0};
 	WAVStruct*		WavStruct = 0 ; 
-	unsigned int	bytes ;
-	fp = fopen( WavName , "rb" ) ;
-	if( !fp )
+	unsigned int	bytes = 0;
+	fp = fopen(WavName , "rb") ;
+	if( !fp ){
 		goto error;
+	}
 
 	WavStruct = malloc( sizeof( WAVStruct ) ) ;
-	if(!WavStruct )
+	if(!WavStruct){
 		goto error;
+	}
+
 	memset( WavStruct , 0 ,  sizeof( WAVStruct )  ) ; 
-	bytes = fread( &(WavStruct->riff) , 1 , sizeof( WAVInfo ) ,   fp ) ;
-	if( bytes != sizeof( WAVInfo ) )
+	bytes = fread( &(WavStruct->riff) , 1 , sizeof( WAVInfo ), fp) ;
+	if( bytes != sizeof( WAVInfo)){
 		goto error;
+	}
 	
 	strcpy( buf4 , "RIFF" ) ;
-	if( memcmp( WavStruct->riff.riffHead , buf4 ,4  ) != 0  )
+	if( memcmp( WavStruct->riff.riffHead , buf4 ,4  ) != 0)
 		goto error;
 	strcpy( buf4 , "WAVE" ) ;
 	if( memcmp( WavStruct->riff.riffType, buf4,  4 ) != 0  )

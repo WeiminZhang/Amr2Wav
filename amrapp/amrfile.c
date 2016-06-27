@@ -34,10 +34,10 @@
 const char* amrStr[4] = { "#!AMR\n" , "#!AMR-WB\n" , "#!AMR_MC1.0\n" , "#!AMR-WB_MC1.0\n" } ;
 AMRStruct* OpenAmrFile(char* AmrName , unsigned int* pid , int isIdFile , int offsetForIdFile ) 
 {
-	char buf[15] ;	
-	unsigned int bytes ;
+	char buf[15] = {0} ;
+	unsigned int bytes = 0;
 	
-	int		fd = -1 ;
+	int	fd = -1 ;
 	AMRStruct* AmrStruct = 0  ;
 	enum AmrFileType AmrType ;
 	short n ;
@@ -55,21 +55,22 @@ AMRStruct* OpenAmrFile(char* AmrName , unsigned int* pid , int isIdFile , int of
 
 	bytes = read( fd , buf , 15) ;
 	AmrType =  AMR_NB_SC ;
-	while (bytes && AmrType < AMR_TYPE_NUM )
-	{
+	while (bytes && AmrType < AMR_TYPE_NUM ){
 		if( memcmp( buf , amrStr[AmrType] ,  strlen( amrStr[AmrType] ) ) == 0 )
 			break ;
 		AmrType ++  ;
 	}
 	
-	if( AmrType >= AMR_TYPE_NUM )
+	if( AmrType >= AMR_TYPE_NUM ){
 		goto error ;
+	}
 
-
-	if( !isIdFile  )
+	if( !isIdFile  ){
 		lseek( fd , strlen( amrStr[AmrType] )  , SEEK_SET );
-	else 
+	}
+	else{
 		lseek( fd , strlen( amrStr[AmrType] ) + offsetForIdFile  , SEEK_SET );
+	}
 
 	AmrStruct = (AMRStruct*)malloc( sizeof( AMRStruct ) ) ;
 	if( !AmrStruct )
@@ -101,15 +102,18 @@ AMRStruct* OpenAmrFile(char* AmrName , unsigned int* pid , int isIdFile , int of
 	return AmrStruct ;
 
 error: 
-	   if( fd )
+	   if( fd ){
 		   close( fd ) ;
+		   fd = -1;
+	   }
 
-	   if( !AmrStruct )
+	   if( !AmrStruct ){
 		   free( AmrStruct ) ;
+		   AmrStruct = 0;
+	   }
+
 	   return 0 ;	
 }
-
-
 
 
 /**************************************************************************
@@ -139,11 +143,12 @@ AMRStruct* CreateAmrFile(char* AmrName , enum AmrFileType amrfiletype , enum Cha
 	}
 
 	AmrStruct =(AMRStruct*) malloc( sizeof( AMRStruct ) ) ;
-	if( ! AmrStruct )
-		goto error  ;
+	if( ! AmrStruct ){
+		goto error;
+	}
 	memset( AmrStruct , 0 , sizeof( AMRStruct ) ) ;
 
-	strcpy( (char*)AmrStruct->AmrFileHead ,  amrStr[ amrfiletype] ) ;
+	strcpy( (char*)AmrStruct->AmrFileHead ,  amrStr[amrfiletype] ) ;
 	AmrStruct->AmrFileHeadLength = strlen( amrStr[ amrfiletype] ) ;
 	if ( (amrfiletype == AMR_NB_MC)  || (amrfiletype == AMR_WB_MC) ){
 		bytes = channelstruct ;
@@ -153,8 +158,9 @@ AMRStruct* CreateAmrFile(char* AmrName , enum AmrFileType amrfiletype , enum Cha
 
 	if( bCreateFile ){
 		bytes = fwrite( AmrStruct->AmrFileHead , 1 , AmrStruct->AmrFileHeadLength , fp ) ;
-		if( bytes != AmrStruct->AmrFileHeadLength ) 
+		if( bytes != AmrStruct->AmrFileHeadLength ){
 			goto error;
+		}
 	}
 
 	AmrStruct->AmrType =  amrfiletype ; 
@@ -162,16 +168,23 @@ AMRStruct* CreateAmrFile(char* AmrName , enum AmrFileType amrfiletype , enum Cha
 	AmrStruct->Channel_Struct = channelstruct ;
 	AmrStruct->nChannels = channelstruct + 1 ;
 	AmrStruct->ChannelBuffer[0] = AmrStruct->BufferPointer ; 
-	for( bytes = 1 ; bytes <   AmrStruct->nChannels  ; bytes ++ )
+	for( bytes = 1 ; bytes <   AmrStruct->nChannels  ; bytes ++ ){
 		AmrStruct->ChannelBuffer[bytes] = AmrStruct->ChannelBuffer[bytes-1] + MAXBYTESOFONFRAME ;
+	}
 	 
 	InitFrameBitOrder();
 	return  AmrStruct ;
+
 error:
-	if( fp )
-		fclose( fp ) ;
-	if( AmrStruct )
+	if( fp ){
+		fclose(fp);
+		fp = -1;
+	}
+
+	if( AmrStruct ){
 		free( AmrStruct ) ;
+		AmrStruct = 0;
+	}
 	return 0 ;
 
 }
@@ -195,10 +208,12 @@ short ReadOneFrameBlock( AMRStruct* AmrStruct  )
 	int frametype  ;
 	int  nF  ;
 
-	for(  nF  = 0 ; nF < AmrStruct->nChannels ;  nF ++ ){
-		bytes  = read( AmrStruct->fd , AmrStruct->ChannelBuffer[nF] , 1   );
-		if( bytes <= 0 )
-			return 0 ;		
+	for(nF  = 0 ; nF < AmrStruct->nChannels ;  nF ++ ){
+		bytes  = read( AmrStruct->fd , AmrStruct->ChannelBuffer[nF] , 1);
+		if( bytes <= 0 ){
+			return 0 ;
+		}
+
 		frametype  =  (AmrStruct->ChannelBuffer[nF][0] >> 3 )&15 ;
 		bytes  = read(  AmrStruct->fd ,  &AmrStruct->ChannelBuffer[nF][1] ,  bit_Byte_Number[frametype][1] );
 		if( bytes != bit_Byte_Number[frametype][1] ){
@@ -224,9 +239,13 @@ short ReadOneFrameBlock( AMRStruct* AmrStruct  )
  ****************************************************************************************/
 short WriteOneFrameBlock( AMRStruct* AmrStruct  ) 
 {
-	unsigned int bytes ;
-	int frametype  ;
-	int  nF  ;
+	unsigned int bytes = 0;
+	int frametype = 0;
+	int  nF  = 0;
+
+	if(!AmrStruct){
+		return 0;
+	}
 
 	for(  nF  = 0 ; nF < AmrStruct->nChannels ;  nF ++ ){
 		bytes  = fwrite( AmrStruct->ChannelBuffer[nF] , 1 , 1 , AmrStruct->fp );
@@ -239,6 +258,7 @@ short WriteOneFrameBlock( AMRStruct* AmrStruct  )
 			return 0 ;
 		}
 	}
+
 	return 1 ;
 }
 
@@ -258,11 +278,16 @@ short WriteOneFrameBlock( AMRStruct* AmrStruct  )
 short CloseAmrFile( AMRStruct* AmrStruct ) 
 {
 	int ret = -1;
+
+	if(AmrStruct){
+		return 0;
+	}
+
 	if(AmrStruct->fp)
 		ret = fclose( AmrStruct->fp ) ; 
 	if( AmrStruct->fd )
 		ret += close( AmrStruct->fd ) ;
-	free( AmrStruct ) ; 
+	free( AmrStruct ); //need to check if memory leak
 
 	return (!ret?1:0)   ;
 }
